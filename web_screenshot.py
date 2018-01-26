@@ -6,38 +6,8 @@ from PyQt4.QtWebKit import *
 from functools import partial
 import imgkit
 import urllib
-
-
-class Screenshot(QWebView):
-    def __init__(self):
-        self.app = QApplication(sys.argv)
-        QWebView.__init__(self)
-        self._loaded = False
-        self.loadFinished.connect(self._loadFinished)
-
-    def capture(self, url, output_file):
-        self.load(QUrl(url))
-        self.wait_load()
-        # set to webpage size
-        frame = self.page().mainFrame()
-        self.page().setViewportSize(frame.contentsSize())
-        # render image
-        image = QImage(self.page().viewportSize(), QImage.Format_ARGB32)
-        painter = QPainter(image)
-        frame.render(painter)
-        painter.end()
-        print 'saving', output_file
-        image.save(output_file)
-
-    def wait_load(self, delay=0):
-        # process app events until page loaded
-        while not self._loaded:
-            self.app.processEvents()
-            time.sleep(delay)
-        self._loaded = False
-
-    def _loadFinished(self, result):
-        self._loaded = True
+from PIL import Image
+import io, piexif
 
 class MainDialog(QDialog):
 	def __init__(self, parent=None):
@@ -98,6 +68,7 @@ class MainDialog(QDialog):
 		if opt == 1:
 			try:
 				imgkit.from_url(url, "Full_" +self.web.title()+"_"+now+".jpg")
+				insert_EXIF("Full_" +self.web.title()+"_"+now+".jpg",now)
 				QMessageBox.information(self, "Success", "Capture Completed!")
 			except:
 				warnBox.exec_()
@@ -108,6 +79,7 @@ class MainDialog(QDialog):
 				self.web.page().mainFrame().render(painter)
 				painter.end()
 				image.save("Part_"+self.web.title()+"_"+now+".jpg")							
+				insert_EXIF("Part_"+self.web.title()+"_"+now+".jpg",now)
 				QMessageBox.information(self, "Success", "Capture Completed!")
 			except:
 				warnBox.exec_()
@@ -146,6 +118,20 @@ def getTime():
 	str_time = str(now.tm_year)+mon+day+"-"+hour+Min+sec
 	return str_time
 
+def insert_EXIF(fname, now):
+	time_stamp = now[:4] + ":" + now[4:6] + ":" + now[6:8] + " " + now[9:11] + ":" + now[11:13] + ":" + now[13:15]		
+	zeroth_ifd = {piexif.ImageIFD.Make: u"Jungwan"}
+	exif_ifd = {piexif.ExifIFD.DateTimeOriginal: time_stamp}
+	gps_ifd = {piexif.GPSIFD.GPSDateStamp: time_stamp}
+	first_ifd = {piexif.ImageIFD.Make: u"Jungwan"}
+	
+	exif_dict = {"0th":zeroth_ifd,"Exif":exif_ifd,"GPS":gps_ifd,"1st":first_ifd}
+	exif_bytes = piexif.dump(exif_dict)	
+	piexif.insert(exif_bytes, fname)
+
+	
+
+
 if __name__ == "__main__":
 	if "export" not in os.listdir(os.getcwd()):		
 		os.mkdir('./export')
@@ -156,7 +142,3 @@ if __name__ == "__main__":
 	app = QApplication(sys.argv)
 	dialog = MainDialog()
 	sys.exit(app.exec_())
-
-	s = Screenshot()
-	s.capture('http://webscraping.com', 'website.png')
-	s.capture('http://webscraping.com/blog', 'blog.png')

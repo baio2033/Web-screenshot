@@ -5,6 +5,8 @@ from PyQt4.QtGui import *
 from PyQt4.QtWebKit import *
 from functools import partial
 import imgkit
+import urllib
+
 
 class Screenshot(QWebView):
     def __init__(self):
@@ -92,9 +94,10 @@ class MainDialog(QDialog):
 		url = self.url
 		self.web.load(QUrl(url))
 		#print self.web.title()
+		now = getTime()
 		if opt == 1:
 			try:
-				imgkit.from_url(url, self.web.title()+".jpg")
+				imgkit.from_url(url, "Full_" +self.web.title()+"_"+now+".jpg")
 				QMessageBox.information(self, "Success", "Capture Completed!")
 			except:
 				warnBox.exec_()
@@ -104,18 +107,52 @@ class MainDialog(QDialog):
 				painter = QPainter(image)
 				self.web.page().mainFrame().render(painter)
 				painter.end()
-				image.save(self.web.title()+".jpg")							
+				image.save("Part_"+self.web.title()+"_"+now+".jpg")							
 				QMessageBox.information(self, "Success", "Capture Completed!")
 			except:
 				warnBox.exec_()
 		elif opt == 3:
-			s = Screenshot()
-			s.capture(URL, URL+".jpg")
-			self.reject()
+			try:
+				data = urllib.urlopen(url).read()
+				f = open("Src_"+self.web.title()+"_"+now+ ".html", "w")
+				f.write(data)
+				f.close()
+				QMessageBox.information(self, "Success", "Capture Completed!")
+			except:
+				warnBox.exec_()
+
+def getTime():
+	now = time.localtime()
+	if now.tm_mon < 10:
+		mon = "0"+str(now.tm_mon)
+	else:
+		mon = str(now.tm_mon)
+	if now.tm_mday < 10:
+		day = "0"+str(now.tm_mday)
+	else:
+		day = str(now.tm_mday)
+	if now.tm_hour < 10:
+		hour = "0"+str(now.tm_hour)
+	else:
+		hour = str(now.tm_hour)
+	if now.tm_min < 10:
+		Min = "0"+str(now.tm_min)
+	else:
+		Min = str(now.tm_min)
+	if now.tm_sec < 10:
+		sec = "0"+str(now.tm_sec)
+	else:
+		sec = str(now.tm_sec)
+	str_time = str(now.tm_year)+mon+day+"-"+hour+Min+sec
+	return str_time
 
 if __name__ == "__main__":
-	os.mkdir('./screenshot')
-	os.chdir('./screenshot')
+	if "export" not in os.listdir(os.getcwd()):		
+		os.mkdir('./export')
+	try:
+		os.chdir('./export')
+	except:
+		pass	
 	app = QApplication(sys.argv)
 	dialog = MainDialog()
 	sys.exit(app.exec_())

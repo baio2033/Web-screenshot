@@ -1,11 +1,11 @@
 # Web-screenshot
-=======================================================
+
 >BoB 6th Digital Forensics
   <br>최정완
 
 
 ## Requirements
-=======================================================
+
 - OS: Linux(ubuntu)
 - python2
 - PyQt4
@@ -14,7 +14,7 @@
 
 
 ## Usage
-=======================================================
+
 - python web_screenshot.py
 - Full: Capture Full Screenshot of current web page
 - Part: Capture Part of current web page

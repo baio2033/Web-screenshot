@@ -4,8 +4,6 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from PyQt4.QtWebKit import *
 from functools import partial
-import imgkit
-import urllib
 from PIL import Image
 import io, piexif
 
@@ -40,6 +38,8 @@ class MainDialog(QDialog):
 		self.web = QWebView()
 		self.web.load(QUrl("https://www.google.com"))
 
+		self.web.urlChanged.connect(self.checkUrl)
+
 		buttonBox = QDialogButtonBox(QDialogButtonBox.Cancel)
 		buttonBox.rejected.connect(self.reject)
 
@@ -48,8 +48,17 @@ class MainDialog(QDialog):
 		mainLayout.addWidget(self.web)
 		mainLayout.addWidget(buttonBox)
 
+		self.resize(1920,1080)
+
 		self.setLayout(mainLayout)
 		self.show()
+
+	def checkUrl(self):
+		#print str(self.web.url())		
+		self.url = str(self.web.url())
+		tmp = self.url.split("QUrl(u'")[1]
+		tmp = tmp[:-2]
+		self.urlValue.setText(tmp)
 
 	def go_url(self):
 		self.url = str(self.urlValue.text())
@@ -62,36 +71,61 @@ class MainDialog(QDialog):
 		warnBox.addButton("&Close", QMessageBox.RejectRole)
 
 		url = self.url
-		self.web.load(QUrl(url))
+		if url.startswith("PyQt4.QtCore.QUrl"):
+			url = url.split("QUrl(u'")[1]
+			url = url[:-2]
 		#print self.web.title()
 		now = getTime()
 		if opt == 1:
 			try:
-				imgkit.from_url(url, "Full_" +self.web.title()+"_"+now+".jpg")
-				insert_EXIF("Full_" +self.web.title()+"_"+now+".jpg",now)
+				frame = self.web.page().currentFrame()
+				size = frame.contentsSize()
+
+				ori_width = self.web.width()
+				ori_height = self.web.height()
+
+				size.setWidth(size.width()+20)
+				size.setHeight(size.height()+10)
+				self.web.resize(size)
+				self.web.page().setViewportSize(size)
+
+				image = QImage(size, QImage.Format_ARGB32)
+				painter = QPainter(image)
+				frame.render(painter, QWebFrame.ContentsLayer)				
+				painter.end()				
+				image.save("Full_ScreenShot_"+now+".jpg")												
+				insert_EXIF("Full_ScreenShot_"+now+".jpg",now)		
+
+				size.setWidth(ori_width)
+				size.setHeight(ori_height)
+				self.web.resize(size)
+				self.web.page().setViewportSize(size)
+
 				QMessageBox.information(self, "Success", "Capture Completed!")
-			except:
+			except Exception as e:	
+				print e		
 				warnBox.exec_()
 		elif opt == 2:				    	
 			try:
-				image = QImage(self.web.page().mainFrame().contentsSize(), QImage.Format_ARGB32)
-				painter = QPainter(image)
+				image = QImage(self.web.page().mainFrame().contentsSize(), QImage.Format_ARGB32)				
+				painter = QPainter(image)				
 				self.web.page().mainFrame().render(painter)
 				painter.end()
-				image.save("Part_"+self.web.title()+"_"+now+".jpg")							
-				insert_EXIF("Part_"+self.web.title()+"_"+now+".jpg",now)
+				image.save("Part_ScreenShot_"+now+".jpg")							
+				insert_EXIF("Part_ScreenShot_"+now+".jpg",now)
 				QMessageBox.information(self, "Success", "Capture Completed!")
-			except:
+			except Exception as e:				
 				warnBox.exec_()
-		elif opt == 3:
+		elif opt == 3:						
 			try:
-				data = urllib.urlopen(url).read()
-				f = open("Src_"+self.web.title()+"_"+now+ ".html", "w")
+				data = self.web.page().currentFrame().toHtml()
+				f = open("Src_"+now+".html" ,"w")
 				f.write(data)
 				f.close()
 				QMessageBox.information(self, "Success", "Capture Completed!")
 			except:
 				warnBox.exec_()
+
 
 def getTime():
 	now = time.localtime()
@@ -118,7 +152,7 @@ def getTime():
 	str_time = str(now.tm_year)+mon+day+"-"+hour+Min+sec
 	return str_time
 
-def insert_EXIF(fname, now):
+def insert_EXIF(fname, now):	
 	time_stamp = now[:4] + ":" + now[4:6] + ":" + now[6:8] + " " + now[9:11] + ":" + now[11:13] + ":" + now[13:15]		
 	zeroth_ifd = {piexif.ImageIFD.Make: u"Jungwan"}
 	exif_ifd = {piexif.ExifIFD.DateTimeOriginal: time_stamp}

@@ -108,10 +108,13 @@ class MainDialog(QDialog):
 				print e		
 				warnBox.exec_()
 		elif opt == 2:				    	
-			try:
-				image = QImage(self.web.page().mainFrame().contentsSize(), QImage.Format_ARGB32)				
+			try:				
+				size = self.web.page().currentFrame().contentsSize()
+				size.setWidth(self.web.width())
+				size.setHeight(self.web.height())
+				image = QImage(size, QImage.Format_ARGB32)				
 				painter = QPainter(image)				
-				self.web.page().mainFrame().render(painter)
+				self.web.page().currentFrame().render(painter)
 				painter.end()
 				image.save("Part_ScreenShot_"+now+".jpg")							
 				insert_EXIF("Part_ScreenShot_"+now+".jpg",now)

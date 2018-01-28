@@ -15,6 +15,8 @@ class MainDialog(QDialog):
 	def initUI(self):
 		self.setWindowTitle("Web Capture")
 
+		self.backBtn = QPushButton("Back")
+		self.backBtn.clicked.connect(self.goBack)
 		self.urlLabel = QLabel("Url:")
 		self.urlValue = QLineEdit(self)
 		self.goBtn = QPushButton("Go")
@@ -34,6 +36,7 @@ class MainDialog(QDialog):
 		urlLayout.addWidget(self.fullBtn,0,3)
 		urlLayout.addWidget(self.curBtn,0,4)
 		urlLayout.addWidget(self.scrBtn,0,5)
+		urlLayout.addWidget(self.backBtn,0,6)
 
 		self.web = QWebView()
 		self.web.load(QUrl("https://www.google.com"))
@@ -52,6 +55,9 @@ class MainDialog(QDialog):
 
 		self.setLayout(mainLayout)
 		self.show()
+
+	def goBack(self):
+		self.web.page().triggerAction(QWebPage.Back)
 
 	def checkUrl(self):
 		#print str(self.web.url())		

@@ -5,7 +5,7 @@ from PyQt4.QtGui import *
 from PyQt4.QtWebKit import *
 from functools import partial
 from PIL import Image
-import io, piexif
+import io, piexif, sqlite3, md5
 
 class MainDialog(QDialog):
 	def __init__(self, parent=None):
@@ -94,7 +94,9 @@ class MainDialog(QDialog):
 				frame.render(painter, QWebFrame.ContentsLayer)				
 				painter.end()				
 				image.save("Full_ScreenShot_"+now+".jpg")												
-				insert_EXIF("Full_ScreenShot_"+now+".jpg",now)		
+				insert_EXIF("Full_ScreenShot_"+now+".jpg",now)	
+
+				storeDB(url, now, "Full_ScreenShot_"+now+".jpg", "Full")	
 
 				size.setWidth(ori_width)
 				size.setHeight(ori_height)
@@ -113,6 +115,7 @@ class MainDialog(QDialog):
 				painter.end()
 				image.save("Part_ScreenShot_"+now+".jpg")							
 				insert_EXIF("Part_ScreenShot_"+now+".jpg",now)
+				storeDB(url, now, "Part_ScreenShot_"+now+".jpg", "Part")
 				QMessageBox.information(self, "Success", "Capture Completed!")
 			except Exception as e:				
 				warnBox.exec_()
@@ -122,9 +125,27 @@ class MainDialog(QDialog):
 				f = open("Src_"+now+".html" ,"w")
 				f.write(data)
 				f.close()
+				storeDB(url, now, "Src_"+now+".html", "Script")
 				QMessageBox.information(self, "Success", "Capture Completed!")
 			except:
 				warnBox.exec_()
+
+
+def storeDB(url, now, fname, f_type):
+	m = md5.new()
+	f = open(fname, "rb")
+	m.update(f.read())
+	fileHash = m.hexdigest()
+	f.close()
+
+	conn = sqlite3.connect('capture.db')
+	cur = conn.cursor()
+	sql = "insert into Capture (type, url, time, md5) values (?, ?, ?, ?)"
+	cur.execute(sql, (f_type, url, now, fileHash))
+	conn.commit()
+
+	conn.close()
+
 
 
 def getTime():
@@ -173,6 +194,16 @@ if __name__ == "__main__":
 		os.chdir('./export')
 	except:
 		pass	
+
+	if "capture.db" not in os.listdir(os.getcwd()):
+		f = open("capture.db", "w")
+		f.close()
+		conn = sqlite3.connect("capture.db")
+		cur = conn.cursor()
+		cur.execute("create table Capture (type LONGVARCHAR, url LONGVARCHAR, time LONGVARCHAR, md5 LONGVARCHAR)")
+		conn.commit()
+		conn.close()
+
 	app = QApplication(sys.argv)
 	dialog = MainDialog()
 	sys.exit(app.exec_())

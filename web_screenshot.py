@@ -149,8 +149,8 @@ def storeDB(url, now, fname, f_type):
 
 	conn = sqlite3.connect('capture.db')
 	cur = conn.cursor()
-	sql = "insert into Capture (type, url, time, md5) values (?, ?, ?, ?)"
-	cur.execute(sql, (f_type, url, now, fileHash))
+	sql = "insert into Capture (type, fileName, url, time, md5) values (?, ?, ?, ?, ?)"
+	cur.execute(sql, (f_type, fname, url, now, fileHash))
 	conn.commit()
 
 	conn.close()
@@ -209,7 +209,7 @@ if __name__ == "__main__":
 		f.close()
 		conn = sqlite3.connect("capture.db")
 		cur = conn.cursor()
-		cur.execute("create table Capture (type LONGVARCHAR, url LONGVARCHAR, time LONGVARCHAR, md5 LONGVARCHAR)")
+		cur.execute("create table Capture (type LONGVARCHAR, fileName LONGVARCHAR, url LONGVARCHAR, time LONGVARCHAR, md5 LONGVARCHAR)")
 		conn.commit()
 		conn.close()
 
